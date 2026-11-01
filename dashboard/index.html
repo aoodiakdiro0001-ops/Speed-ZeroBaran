@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Speed-ZeroBaran — Dashboard</title>
+  <style>
+    :root {
+      --bg:#0b1020; --card:#151c30; --fg:#e6ecff; --muted:#9aa6c7;
+      --accent:#3ddc97; --warn:#ffb86c; --danger:#ff6b6b; --line:#232b48;
+    }
+    * { box-sizing:border-box; }
+    body {
+      margin:0; padding:24px; font-family:'Segoe UI',Tahoma,sans-serif;
+      background:var(--bg); color:var(--fg); line-height:1.6;
+    }
+    header { text-align:center; margin-bottom:24px; }
+    header h1 { margin:0; font-size:1.8rem; }
+    header .sub { color:var(--muted); font-size:.95rem; margin-top:4px; }
+    .grid { display:grid; gap:16px;
+            grid-template-columns:repeat(auto-fill,minmax(320px,1fr)); }
+    .card {
+      background:var(--card); border:1px solid var(--line);
+      border-radius:14px; padding:18px 20px;
+    }
+    .card h2 { margin:0 0 6px; font-size:1.1rem; }
+    .url { color:var(--muted); font-size:.85rem; word-break:break-all; }
+    .score {
+      display:inline-block; padding:6px 12px; border-radius:8px;
+      font-weight:700; font-size:1.4rem; margin:8px 0;
+    }
+    .score.good { background:rgba(61,220,151,.15); color:var(--accent); }
+    .score.warn { background:rgba(255,184,108,.15); color:var(--warn); }
+    .score.bad  { background:rgba(255,107,107,.15); color:var(--danger); }
+    .vitals { display:flex; gap:12px; flex-wrap:wrap; margin-top:8px; }
+    .vital {
+      background:#0e1428; padding:8px 10px; border-radius:8px;
+      font-size:.85rem; min-width:80px; text-align:center;
+    }
+    .vital .label { color:var(--muted); font-size:.7rem;
+                    text-transform:uppercase; letter-spacing:.05em; }
+    .vital .val { font-weight:700; font-size:1rem; }
+    .meta { color:var(--muted); font-size:.8rem; margin-top:10px; }
+    .ai {
+      background:#0e1428; padding:10px; border-radius:8px;
+      margin-top:10px; font-size:.88rem;
+      border-right:3px solid var(--accent);
+    }
+    .empty {
+      text-align:center; padding:60px 20px; color:var(--muted);
+    }
+    .config-bar {
+      background:var(--card); border:1px solid var(--line);
+      border-radius:14px; padding:12px 18px; margin-bottom:20px;
+      display:flex; gap:10px; align-items:center; flex-wrap:wrap;
+    }
+    .config-bar input {
+      flex:1; min-width:200px; padding:8px 12px; border-radius:8px;
+      background:#0e1428; color:var(--fg); border:1px solid var(--line);
+    }
+    .config-bar button {
+      padding:8px 18px; border-radius:8px; border:none; cursor:pointer;
+      background:var(--accent); color:#0b1020; font-weight:700;
+    }
+    footer { text-align:center; color:var(--muted); margin-top:30px;
+             font-size:.85rem; padding-top:18px; border-top:1px solid var(--line); }
+    a { color:var(--accent); }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>⚡ Speed-ZeroBaran Dashboard</h1>
+    <div class="sub">المنظومة الذاتية لمراقبة وتحليل وتسريع أداء المواقع</div>
+  </header>
+
+  <div class="config-bar">
+    <input id="supabaseUrl" placeholder="Supabase URL (https://xxx.supabase.co)">
+    <input id="supabaseKey" placeholder="Supabase anon key" type="password">
+    <button onclick="loadAudits()">تحميل</button>
+    <button onclick="toggleAuto()" id="autoBtn">تشغيل تلقائي</button>
+  </div>
+
+  <div id="content">
+    <div class="empty">أدخل بيانات Supabase أعلاه ثم اضغط «تحميل».</div>
+  </div>
+
+  <footer>
+    Speed-ZeroBaran v1.0.0 — by <strong>Baran Avisat</strong><br>
+    ✉️ <a href="mailto:Baranavisat@gmail.com">Baranavisat@gmail.com</a>
+    • 📱 +90 531 326 3722 • MIT License
+  </footer>
+
+<script>
+const STORAGE_KEY = 'speed-zerobaran-supabase';
+let autoTimer = null;
+
+function loadStored() {
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved) {
+    try {
+      const c = JSON.parse(saved);
+      document.getElementById('supabaseUrl').value = c.url || '';
+      document.getElementById('supabaseKey').value = c.key || '';
+      loadAudits();
+    } catch {}
+  }
+}
+
+async function loadAudits() {
+  const url  = document.getElementById('supabaseUrl').value.trim().replace(/\/$/,'');
+  const key  = document.getElementById('supabaseKey').value.trim();
+  const cont = document.getElementById('content');
+  if (!url || !key) {
+    alert('الرجاء إدخال URL و Key الخاص بـ Supabase');
+    return;
+  }
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ url, key }));
+  cont.innerHTML = '<div class="empty">…جارٍ التحميل</div>';
+  try {
+    const resp = await fetch(`${url}/rest/v1/v_latest_audit_per_url?select=*`, {
+      headers: { apikey: key, Authorization: `Bearer ${key}` },
+    });
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const rows = await resp.json();
+    render(rows);
+  } catch (e) {
+    cont.innerHTML = `<div class="empty">⚠️ فشل التحميل: ${e.message}<br>
+      تأكد من إعداد v_latest_audit_per_url في Supabase.</div>`;
+  }
+}
+
+function scoreClass(s) {
+  if (s >= 90) return 'good';
+  if (s >= 50) return 'warn';
+  return 'bad';
+}
+function fmt(v, unit='') {
+  return v == null ? '—' : (typeof v === 'number' ? v.toFixed(2) : v) + unit;
+}
+
+function render(rows) {
+  const cont = document.getElementById('content');
+  if (!rows || rows.length === 0) {
+    cont.innerHTML = '<div class="empty">لا توجد بيانات بعد. شغّل أول audit عبر GitHub Actions.</div>';
+    return;
+  }
+  cont.innerHTML = '<div class="grid">' + rows.map(r => `
+    <div class="card">
+      <h2>${r.site_name || r.url}</h2>
+      <div class="url">${r.url}</div>
+      <div class="score ${scoreClass(r.performance_score)}">${r.performance_score}/100</div>
+      <div class="vitals">
+        <div class="vital"><div class="label">LCP</div><div class="val">${fmt(r.lcp,'s')}</div></div>
+        <div class="vital"><div class="label">INP</div><div class="val">${r.inp? (r.inp*1000).toFixed(0)+'ms':'—'}</div></div>
+        <div class="vital"><div class="label">CLS</div><div class="val">${fmt(r.cls)}</div></div>
+        <div class="vital"><div class="label">FCP</div><div class="val">${fmt(r.fcp,'s')}</div></div>
+        <div class="vital"><div class="label">TTFB</div><div class="val">${fmt(r.ttfb,'s')}</div></div>
+      </div>
+      ${r.ai_summary ? `<div class="ai"><strong>🛠️ AI:</strong> ${r.ai_summary}</div>` : ''}
+      <div class="meta">آخر فحص: ${new Date(r.audit_timestamp).toLocaleString('ar-EG')}</div>
+    </div>
+  `).join('') + '</div>';
+}
+
+function toggleAuto() {
+  const btn = document.getElementById('autoBtn');
+  if (autoTimer) {
+    clearInterval(autoTimer);
+    autoTimer = null;
+    btn.textContent = 'تشغيل تلقائي';
+  } else {
+    autoTimer = setInterval(loadAudits, 60_000);
+    btn.textContent = 'إيقاف التلقائي';
+  }
+}
+
+window.addEventListener('DOMContentLoaded', loadStored);
+</script>
+</body>
+</html>

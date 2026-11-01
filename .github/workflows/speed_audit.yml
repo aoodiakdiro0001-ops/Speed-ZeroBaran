@@ -1,0 +1,85 @@
+# ============================================================
+# Speed-ZeroBaran — Periodic Performance Audit (every 6 hours)
+# Author: Baran Avisat <Baranavisat@gmail.com>
+# License: MIT — 100% Free GitHub Actions minutes
+# ============================================================
+name: Speed-ZeroBaran Audit
+
+on:
+  schedule:
+    # Every 6 hours at minute 0 — UTC
+    # Adjust via CRON_SCHEDULE in .env.example
+    - cron: "0 */6 * * *"
+  workflow_dispatch:
+    # Allow manual runs from the GitHub UI
+    inputs:
+      url:
+        description: 'Single URL to audit (optional)'
+        required: false
+        default: ''
+      strategy:
+        description: 'mobile | desktop'
+        required: false
+        default: 'mobile'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: speed-zerobaran-audit
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: ⬇️ Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🐍 Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: 📦 Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: 🌐 (Optional) Install Lighthouse CLI fallback
+        run: npm install -g lighthouse
+        continue-on-error: true
+
+      - name: ⚡ Run Speed-ZeroBaran audit
+        env:
+          TARGET_SITES:        ${{ secrets.TARGET_SITES }}
+          PAGESPEED_API_KEY:   ${{ secrets.PAGESPEED_API_KEY }}
+          GEMINI_API_KEY:      ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_MODEL:        ${{ secrets.GEMINI_MODEL }}
+          GROQ_API_KEY:        ${{ secrets.GROQ_API_KEY }}
+          GROQ_MODEL:          ${{ secrets.GROQ_MODEL }}
+          SUPABASE_URL:        ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY:        ${{ secrets.SUPABASE_KEY }}
+          SUPABASE_TABLE:      ${{ secrets.SUPABASE_TABLE }}
+          TELEGRAM_BOT_TOKEN:  ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID:    ${{ secrets.TELEGRAM_CHAT_ID }}
+          SPEED_ALERT_THRESHOLD: ${{ secrets.SPEED_ALERT_THRESHOLD }}
+          SCORE_ALERT_THRESHOLD: ${{ secrets.SCORE_ALERT_THRESHOLD }}
+          AUDIT_STRATEGY:      ${{ inputs.strategy || 'mobile' }}
+          AI_PROVIDER:         ${{ secrets.AI_PROVIDER }}
+        run: |
+          python scripts/run_audit.py \
+            ${{ inputs.url && format('--url "{0}"', inputs.url) || '' }} \
+            ${{ inputs.strategy && format('--strategy {0}', inputs.strategy) || '' }} \
+            --html
+
+      - name: 📤 Upload HTML reports artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: speed-zerobaran-reports
+          path: reports/
+          retention-days: 30
+          if-no-files-found: ignore

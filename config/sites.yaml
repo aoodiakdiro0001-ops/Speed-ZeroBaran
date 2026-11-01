@@ -1,0 +1,20 @@
+# ============================================================
+# Speed-ZeroBaran — Target Sites Configuration
+# Add the sites you want to monitor here.
+# ============================================================
+sites:
+  - name: "Main Site"
+    url: "https://example.com"
+    strategy: "mobile"        # mobile | desktop
+    alert_threshold_sec: 2.5
+    score_threshold: 70
+
+  - name: "Shop Page"
+    url: "https://shop.example.com"
+    strategy: "mobile"
+    alert_threshold_sec: 2.0
+    score_threshold: 80
+
+# You can add as many sites as you want — GitHub Actions
+# free tier runs up to 2,000 minutes/month, more than enough
+# for periodic audits every few hours on a handful of sites.

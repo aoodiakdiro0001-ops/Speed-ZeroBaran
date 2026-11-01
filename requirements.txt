@@ -1,0 +1,33 @@
+# ============================================================
+# Speed-ZeroBaran — Dependencies
+# Author: Baran Avisat <Baranavisat@gmail.com>
+# License: MIT (100% Free Tech Stack)
+# ============================================================
+
+# --- Performance & Web Audit ---
+requests>=2.31.0
+google-api-python-client>=2.108.0
+lighthouse-python>=0.1.7      # optional wrapper (we mainly call CLI)
+python-dotenv>=1.0.0
+
+# --- AI Optimization Core ---
+google-generativeai>=0.3.2    # Gemini API
+groq>=0.4.2                   # Groq free tier fallback
+
+# --- Database (Supabase) ---
+supabase>=2.0.0
+psycopg2-binary>=2.9.9
+sqlalchemy>=2.0.23
+
+# --- Notifications ---
+python-telegram-bot>=20.7
+
+# --- Config & Utilities ---
+PyYAML>=6.0.1
+pydantic>=2.5.2
+rich>=13.7.0                  # beautiful console logs
+Jinja2>=3.1.2                 # report templating
+
+# --- Scheduling / CLI ---
+click>=8.1.7
+croniter>=2.0.1

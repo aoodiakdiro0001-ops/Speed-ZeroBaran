@@ -1,0 +1,5 @@
+"""Speed-ZeroBaran — main source package."""
+__version__ = "1.0.0"
+__author__ = "Baran Avisat"
+__email__ = "Baranavisat@gmail.com"
+__license__ = "MIT"
